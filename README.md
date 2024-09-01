@@ -9,7 +9,7 @@ Booster is an alignment stage safety alignment. The idea is to strenghten the mo
 
 The algorithm of Booster is as follows. 
 <div align="center">
-  <img src="booster.png" width="50%"/>
+  <img src="booster.png" width="70%"/>
 </div>
 
 ## Main code logistic
