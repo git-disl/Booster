@@ -1,42 +1,78 @@
 <!-- markdownlint-disable first-line-h1 -->
 <!-- markdownlint-disable html -->
 
-<h1 align="center">Lisa: Lazy Safety Alignment for Large Language Models against Harmful Fine-tuning</h1>
+<h1 align="center">Booster: Tackling Harmful Fine-tuing for Large Language Models via Attenuating Harmful Perturbation</h1>
 
 
 
-Lisa is a safety alignment method against thee threat of harmful fine-tuning. We consider a two-stage fine-tuning scheme: i) Alignment stage, in which we align the model with human-preference dataset (alignment dataset), and ii) finetuning stage, in which we finetune the model with a user finetuning dataset (which is mixed with harmful instance). Lisa is applied in the fine-tuning stage, in which a Bi-state optimization with proximal term is utilized to mitigate the risk of the mixed harmful data.     
+Booster is an alignment stage safety alignment. The idea is to strenghten the model's robustness with alignment/harmful dataset. 
 
+The algorithm of Booster is as follows. 
+<div align="center">
+  <img src="booster.png" width="50%"/>
+</div>
 
 ## Main code logistic
-We implement a cusomized trainer on top of the original HuggingFace Trainer. To achieve Bi-state optimization,  we append one line of code in function ` training_step()` of `trainer.py`. 
+We implement a cusomized trainer (BoosterAlignmentTrainer) on top of the original HuggingFace Trainer. To achieve Booster, we append several forward/backdward passes according to the psedo-agorithm.
+Specifically, in `trainer_step()`, we use the following logistic:
+
 
 ```
-inputs = self.check_mode(inputs) //Appended code: switch dataset/model according to steps number
-loss = step()  //Gradient backward with the data and model
-```
-
-To introduce a proximal term towards consensus, we need add the following regularization to the loss in function `step()`.
-
-```
-if self.status =="alignment":
-  for name, param in model.named_parameters():
-    if param.requires_grad and self.args.rho>0:
-        loss +=  self.args.rho/2* torch.norm( param- self.alignment_weights[name])**2
+# first backward gradient for harmful dataset    
+with self.compute_loss_context_manager():
+    loss =  self.compute_loss(model, harmful_inputs)
+if self.use_apex:
+    with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+        scaled_loss.backward()
 else:
-  for name, param in model.named_parameters():
-    if param.requires_grad and self.args.rho>0:
-         loss += self.args.rho/2* torch.norm( param- self.finetune_weights[name])**2
+    self.accelerator.backward(loss)
+stored_grads = {name: param.grad.data.clone() for name, param in model.named_parameters() if param.requires_grad}
 ```
- 
 
+```
+# Take step with the harmful perturbation
+with torch.no_grad():
+    grad_norm = self._grad_norm(stored_grads)+ 1e-7
+    # perturb the weights
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            param.data -= self.args.alpha*stored_grads[name]/grad_norm
+
+# backward the harmful gradient after harmful perturbation
+with self.compute_loss_context_manager():
+    loss2 =  self.compute_loss(model, harmful_inputs)
+if self.use_apex:
+    with amp.scale_loss(loss2, self.optimizer) as scaled_loss:
+        scaled_loss.backward()
+else:
+    self.accelerator.backward(loss2)
+perturb_grads = {name: param.grad.clone() for name, param in model.named_parameters() if param.requires_grad}
+```
+
+```
+# calculate the alignment grad
+with self.compute_loss_context_manager():
+    loss3 =  self.compute_loss(model, inputs)
+if self.use_apex:
+    with amp.scale_loss(loss3, self.optimizer) as scaled_loss:
+        scaled_loss.backward()
+else:
+    self.accelerator.backward(loss3)
+```
+
+```
+# Finally, sum the grad
+for name, param in model.named_parameters():
+    if param.requires_grad:
+        param.grad.data=param.grad.data  + (self.args.lamb)*stored_grads[name] -self.args.lamb* perturb_grads[name]
+```
 
 
 ## Package requirement
-The package requirement is listed in `lisa.yml` and `lisa_pip.txt`. Run the following code to install the packages with anaconda and pip.  
+The package requirement is listed in `booster.yml` and `booster_pip.txt`. Run the following code to install the packages with anaconda and pip.  
 ```
-conda env create -f lisa.yml
-pip install -r lisa_pip.txt
+conda env create -f booster.yml
+pip install -r booster_pip.txt
 ```
 
 ## Data  preparation
@@ -64,23 +100,32 @@ We prepare scripts for re-producing all the experiments in the paper. We recomme
 We first run SFT to produce the aligned model. 
 ```
 cd script/alignment
-sbatch  SFT.sh
+sbatch  smooth_align.sh
 ```
-Then we finetune the model using 10% of harmful data with a total number of 5000 samples from SST2 dataset. 
+Then we finetune the model using 10% of harmful data with a total number of 1000 samples from SST2 dataset. 
 ```
 cd ../finetune
-sbatch  lisa_poison_ratio.sh 0.1
+sbatch  smooth_poison_ratio.sh 0.1
 ```
 
+You may find scripts for reproducing all of our experiments in the directory `scripts`.
 
-For comparison, we finetune the model with SFT in the same data setting.
 
+## Citation
+If you find our research interesting, you may cite the following papers. 
 ```
-sbatch  sft_poison_ratio.sh 0.1
-cd ../..
+@article{huang2024lazy,
+  title={Lazy Safety Alignment for Large Language Models against Harmful Fine-tuning},
+  author={Huang, Tiansheng and Hu, Sihao and Ilhan, Fatih and Tekin, Selim Furkan and Liu, Ling},
+  journal={arXiv preprint arXiv:2405.18641},
+  year={2024}
+}
+
+@article{huang2024vaccine,
+  title={Vaccine: Perturbation-aware alignment for large language model},
+  author={Huang, Tiansheng and Hu, Sihao and Liu, Ling},
+  journal={arXiv preprint arXiv:2402.01109},
+  year={2024}
+}
 ```
-
-
-
-
 

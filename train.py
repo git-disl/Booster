@@ -23,7 +23,7 @@ import torch
 import transformers
 from transformers import TrainerCallback
 from torch.utils.data import Dataset
-from trainer import BaseTrainer,FITrainer,ADMMTrainer,UndercoverTrainer,RepNoiseTrainer,LDIFSTrainer, UnitedTrainer,VlguardTrainer,UnitedAlignmentTrainer,SmoothAlignmentTrainer
+from trainer import BaseTrainer,FITrainer,ADMMTrainer,UndercoverTrainer,RepNoiseTrainer,LDIFSTrainer, UnitedTrainer,VlguardTrainer,UnitedAlignmentTrainer,BoosterAlignmentTrainer
 from peft import LoraConfig, get_peft_model, prepare_model_for_int8_training, PeftModel
 from tqdm import tqdm
 import json
@@ -407,9 +407,9 @@ def train():
         harmful_dataset  = SupervisedDataset(tokenizer=tokenizer,data_path="BeaverTails_dangerous", poison_ratio=1,sample_num=data_args.bad_sample_num,benign_dataset=data_args.benign_dataset,poison_data_start=5000)
         trainer = UnitedAlignmentTrainer(model=model, tokenizer=tokenizer, args=training_args ,**data_module) 
         trainer.init(harmful_dataset)
-    elif training_args.optimizer == "smoothAlignment":
+    elif training_args.optimizer == "booster":
         harmful_dataset  = SupervisedDataset(tokenizer=tokenizer,data_path="BeaverTails_dangerous", poison_ratio=1,sample_num=data_args.bad_sample_num,benign_dataset=data_args.benign_dataset,poison_data_start=5000)
-        trainer = SmoothAlignmentTrainer(model=model, tokenizer=tokenizer, args=training_args ,**data_module)
+        trainer = BoosterAlignmentTrainer(model=model, tokenizer=tokenizer, args=training_args ,**data_module)
         trainer.init(harmful_dataset)
     elif training_args.optimizer == "undercover":
         trainer = UndercoverTrainer(model=model, tokenizer=tokenizer, args=training_args ,**data_module) 

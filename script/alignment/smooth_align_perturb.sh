@@ -49,7 +49,7 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
 	--logging_steps 1 \
 	--tf32 True \
 	--cache_dir cache \
-	--optimizer smoothAlignment \
+	--optimizer booster \
 	--sample_num ${sample_num} \
 	--bad_sample_num $bad_sample_num \
 	--lamb ${lamb} \

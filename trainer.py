@@ -122,7 +122,7 @@ class VlguardTrainer(Trainer):
         return loss.detach() / self.args.gradient_accumulation_steps
 
 
-class SmoothAlignmentTrainer(Trainer):
+class BoosterAlignmentTrainer(Trainer):
 
     def get_harmful_dataloader(self,harmful_datast) -> DataLoader:
         """
@@ -254,8 +254,6 @@ class SmoothAlignmentTrainer(Trainer):
         self.sam_state["hooks"] = []
         # torch.nn.utils.clip_grad_norm_(model.parameters(), 10)
 
-
-
     @torch.no_grad()
     def _grad_norm(self,poison_grads_representation):
         norm = torch.norm(
@@ -289,13 +287,10 @@ class SmoothAlignmentTrainer(Trainer):
             else:
                 self.accelerator.backward(loss)
                 # print("gere2")            
-            # Store gradients in a way that retains their computational graph
             stored_grads = {name: param.grad.data.clone() for name, param in model.named_parameters() if param.requires_grad}
-            # # Clear original gradients
-            # for param in model.parameters():
-            #     if param.requires_grad:
-            #         param.grad = None
             model.zero_grad()
+            
+            # Take step with the harmful perturbation
             with torch.no_grad():
                 grad_norm = self._grad_norm(stored_grads)+ 1e-7
             # perturb the weights
@@ -303,7 +298,8 @@ class SmoothAlignmentTrainer(Trainer):
                 if param.requires_grad:
                     # param.data += self.args.rho*stored_grads[name]/grad_norm
                     param.data -= self.args.alpha*stored_grads[name]/grad_norm
-            # do  a second ascent to reduce perturb weight's l2 gradient norm
+          
+            # backward the gradient after harmful perturbation
             with self.compute_loss_context_manager():
                 loss2 =  self.compute_loss(model, harmful_inputs)
             if self.use_apex:
@@ -311,8 +307,9 @@ class SmoothAlignmentTrainer(Trainer):
                     scaled_loss.backward()
             else:
                 self.accelerator.backward(loss2)
-            
             perturb_grads = {name: param.grad.clone() for name, param in model.named_parameters() if param.requires_grad}
+            
+            
             model.zero_grad()
             
             # recover the weights
@@ -363,6 +360,7 @@ class SmoothAlignmentTrainer(Trainer):
             # else:
             # Finally backward for minimize safety gradient
             # print(loss)
+                # calculate the alignment grad
                 with self.compute_loss_context_manager():
                     loss3 =  self.compute_loss(model, inputs)
                 if self.use_apex:
@@ -371,13 +369,11 @@ class SmoothAlignmentTrainer(Trainer):
                 else:
                     self.accelerator.backward(loss3)
                     
-                # sum the grad
+                # Finally, sum the grad
                 for name, param in model.named_parameters():
                     if param.requires_grad:
-                        # param.grad.data=param.grad.data - (self.args.alpha +self.args.lamb/self.args.rho)*stored_grads[name] +self.args.lamb/self.args.rho* perturb_grads[name]
                         param.grad.data=param.grad.data  + (self.args.lamb)*stored_grads[name] -self.args.lamb* perturb_grads[name]
-                        # print(torch.norm((self.args.lamb)*stored_grads[name] -self.args.lamb* perturb_grads[name]))
-                        # print(self.args.lamb/self.args.rho*stored_grads[name]+ self.args.lamb/self.args.rho* perturb_grads[name])
+        
                     
                 self.steps+=1
                 if self.steps%2000==0 :
@@ -390,20 +386,6 @@ class SmoothAlignmentTrainer(Trainer):
             return loss3
         
         loss = step()   
-        # else:
-        #     self.perturb_state = {}
-        #     self.perturb_state ["gradient"] = {}
-        #     # first step to obtain gradient
-        #     step()
-        #     self.after_first_step(model)
-        #     model.zero_grad()
-        #     self.pre_second_step(model)
-        #     loss = step()
-        #     self.after_second_step(model)  
-        #     # second step to do perturbation
-
-
-        # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5) 
         return loss.detach() / self.args.gradient_accumulation_steps
 
 
