@@ -1,0 +1,52 @@
+# Ignore Mac system files
+.DS_store
+
+# Ignore node_modules folder
+node_modules
+
+__pycache__
+
+pic_draw
+
+ckpt
+
+data
+
+cache
+
+# Ignore files related to API keys
+*.env
+
+# Ignore SASS config files
+*.sass-cache
+
+# Ignore SASS config files
+*.pt
+
+*.json
+
+# Ignore SASS config files
+*.log
+
+*.out
+
+*alpaca.sh
+
+# Ignore SASS config files
+.idea
+
+*.pyc
+
+data_copy
+
+script_copy
+
+ckpt_copy
+
+fig
+
+*draw_pic.py
+
+*prune_test.py
+
+*visual_test.py
