@@ -115,6 +115,13 @@ sbatch  smooth_poison_ratio.sh 0.1
 ## Citation
 If you find our research interesting, you may cite the following papers. 
 ```
+@article{huang2024booster,
+  title={Booster: Tackling Harmful Fine-tuning for Large Language Models via Attenuating Harmful Perturbation},
+  author={Huang, Tiansheng and Hu, Sihao and Ilhan, Fatih and Tekin, Selim Furkan and Liu, Ling},
+  journal={arXiv preprint arXiv:2409.01586},
+  year={2024}
+}
+
 @article{huang2024antidote,
   title={Antidote: Post-fine-tuning Safety Alignment for Large Language Models against Harmful Fine-tuning},
   author={Huang, Tiansheng and Bhattacharya, Gautam and Joshi, Pratik and Kimball, Josh and Liu, Ling},
