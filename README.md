@@ -110,7 +110,15 @@ cd ../finetune
 sbatch  smooth_poison_ratio.sh 0.1
 ```
 
+## A line of defense designs
 
+We are commited to design defenses from different angles to harmful fine-tuning. The current avaialble defenses built in the disl group include:
+
+* Alignment stage defense: [Vaccine](https://github.com/git-disl/Vaccine), [Booster](https://github.com/git-disl/Booster/tree/main)
+* Fine-tuning stage defense: [Lisa](https://github.com/git-disl/Lisa)
+* Post-fine-tuning stage defense: [Antidote](https://arxiv.org/abs/2408.09600)
+
+We always welcome different forms of collaboration. If you are interested, please reach out Tiansheng Huang (thuang374@gatech.edu) for discussion. 
 
 ## Citation
 If you find our research interesting, you may cite the following papers. 
