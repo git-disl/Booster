@@ -6,9 +6,9 @@
 
 
 Booster is an alignment stage safety alignment. The idea is to strenghten the model's robustness with alignment/harmful dataset. 
-
+<!---
 Check out our [paper](https://arxiv.org/pdf/2409.01586) and [project homepage](https://huangtiansheng.github.io/Booster_gh_page/).
-
+-->
 The algorithm of Booster is as follows. 
 <div align="center">
   <img src="booster.png" width="70%"/>
