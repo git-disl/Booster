@@ -110,6 +110,8 @@ cd ../finetune
 sbatch  smooth_poison_ratio.sh 0.1
 ```
 
+<!---
+
 ## A line of defense designs
 
 We are commited to design defenses from different angles to harmful fine-tuning. The current avaialble defenses built in the disl group include:
